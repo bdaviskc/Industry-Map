@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>U.S. Heavy Industry Atlas</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap');
+:root {
+  --bg: #f0ede8;
+  --surface: #ffffff;
+  --surface2: #f7f5f2;
+  --border: #d8d2c8;
+  --accent: #b5460f;
+  --hot: #b5460f;
+  --text: #2c2820;
+  --dim: #8a8278;
+  --bright: #1a1510;
+  --map-fill: #dde4ed;
+  --map-border: #b8c4d4;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Barlow Condensed', sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+header {
+  padding: 12px 24px;
+  background: var(--bright);
+  border-bottom: 3px solid var(--accent);
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  flex-shrink: 0;
+}
+h1 {
+  font-size: 1.7rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+}
+h1 em { color: #f5a623; font-style: normal; }
+header p {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  color: #888;
+  letter-spacing: 0.05em;
+}
+#status {
+  padding: 5px 24px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: #6b6055;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.blink { animation: blink 1.2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.sdot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+#body { display: flex; flex: 1; overflow: hidden; }
+#sidebar {
+  width: 248px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.06);
+}
+#sidebar-hdr {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+  text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface2);
+}
+#toggle-all {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--dim);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+#toggle-all:hover { border-color: var(--accent); color: var(--accent); }
+#layer-list { overflow-y: auto; flex: 1; }
+#layer-list::-webkit-scrollbar { width: 4px; }
+#layer-list::-webkit-scrollbar-thumb { background: var(--border); }
+.lrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0ece6;
+  user-select: none;
+  transition: background 0.12s;
+}
+.lrow:hover { background: #faf8f5; }
+.lrow.off { opacity: 0.35; }
+.lswatch {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid rgba(0,0,0,0.12);
+}
+.lname { flex: 1; font-size: 0.9rem; line-height: 1.2; color: var(--text); font-weight: 600; }
+.lcnt {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--dim);
+  min-width: 28px;
+  text-align: right;
+}
+.ltick {
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  color: var(--accent);
+}
+.lrow.off .ltick { color: transparent; }
+.lrow:not(.off) .ltick { border-color: var(--accent); }
+#sfooter {
+  border-top: 1px solid var(--border);
+  padding: 10px 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--dim);
+  line-height: 1.7;
+  flex-shrink: 0;
+  background: var(--surface2);
+}
+#map-wrap { flex: 1; position: relative; overflow: hidden; background: var(--bg); }
+#map-svg { width: 100%; height: 100%; display: block; }
+.sp { fill: var(--map-fill); stroke: var(--map-border); stroke-width: 0.6; }
+.sb { fill: none; stroke: #a0afc4; stroke-width: 0.8; }
+.dot { cursor: pointer; }
+.dot:hover { opacity: 1 !important; filter: brightness(1.15); }
+#tt {
+  position: absolute;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  padding: 9px 13px;
+  pointer-events: none;
+  display: none;
+  max-width: 270px;
+  z-index: 100;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.14);
+  font-size: 0.83rem;
+}
+.ttn { font-weight: 700; color: var(--bright); font-size: 0.9rem; margin-bottom: 3px; }
+.tttype {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  font-weight: 700;
+}
+.ttloc { color: var(--dim); font-size: 0.76rem; }
+.ttem { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; color: var(--accent); margin-top: 4px; font-weight: 600; }
+#counter {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: white;
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+#attribution {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--dim);
+  text-align: right;
+  line-height: 1.7;
+  background: rgba(255,255,255,0.7);
+  padding: 4px 8px;
+  border-radius: 2px;
+}
+#loading {
+  position: absolute; inset: 0;
+  background: rgba(240,237,232,0.92);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px; z-index: 200;
+}
+#loading p { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--accent); letter-spacing: 0.1em; }
+.ring { width: 36px; height: 36px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#errbanner {
+  position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+  background: #fff3f0; border: 1px solid #e88;
+  color: #c0392b; padding: 7px 16px;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+  letter-spacing: 0.05em; display: none; max-width: 520px; text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>U.S. <em>Heavy Industry</em> Atlas</h1>
+  <p>EPA GREENHOUSE GAS REPORTING PROGRAM · ENVIROFACTS PUBLIC API · LIVE DATA</p>
+</header>
+<div id="status">
+  <div class="sdot blink"></div>
+  <span id="stxt">Initializing…</span>
+</div>
+<div id="body">
+  <div id="sidebar">
+    <div id="sidebar-hdr">
+      Industry Layers
+      <button id="toggle-all" onclick="toggleAll()">TOGGLE ALL</button>
+    </div>
+    <div id="layer-list"></div>
+    <div id="sfooter">
+      SOURCE: EPA GHGRP<br>
+      data.epa.gov/efservice<br>
+      THRESHOLD: ≥25k MT CO₂e/yr<br>
+      DOT SIZE = EMISSIONS VOL<br><br>
+      HOVER DOTS FOR DETAILS<br>
+      CLICK ROWS TO TOGGLE
+    </div>
+  </div>
+  <div id="map-wrap">
+    <div id="loading">
+      <div class="ring"></div>
+      <p id="ltxt">LOADING…</p>
+    </div>
+    <svg id="map-svg" viewBox="0 0 960 600"></svg>
+    <div id="tt"></div>
+    <div id="counter">FACILITIES: <span id="fcnt">—</span></div>
+    <div id="attribution">EPA GHGRP · RY 2022<br>epa.gov/ghgreporting</div>
+    <div id="errbanner"></div>
+  </div>
+</div>
+
+<script>
+// ── Auto Assembly (curated public knowledge) ──────────────────────────────────
+const AUTO = [
+  {name:'GM Orion Assembly',city:'Orion Township',st:'MI',lat:42.7847,lng:-83.2527},
+  {name:'GM Flint Assembly',city:'Flint',st:'MI',lat:43.0218,lng:-83.6970},
+  {name:'GM Lansing Grand River',city:'Lansing',st:'MI',lat:42.7535,lng:-84.5555},
+  {name:'GM Lansing Delta Township',city:'Lansing',st:'MI',lat:42.8014,lng:-84.6869},
+  {name:'GM Fort Wayne Assembly',city:'Fort Wayne',st:'IN',lat:41.1306,lng:-85.1292},
+  {name:'GM Bowling Green Assembly',city:'Bowling Green',st:'KY',lat:36.9685,lng:-86.4342},
+  {name:'GM Arlington Assembly',city:'Arlington',st:'TX',lat:32.7357,lng:-97.1081},
+  {name:'GM Spring Hill Assembly',city:'Spring Hill',st:'TN',lat:35.7487,lng:-86.9300},
+  {name:'GM Wentzville Assembly',city:'Wentzville',st:'MO',lat:38.8114,lng:-90.8529},
+  {name:'GM Fairfax Assembly',city:'Kansas City',st:'KS',lat:39.1300,lng:-94.6600},
+  {name:'Ford Michigan Assembly',city:'Wayne',st:'MI',lat:42.2853,lng:-83.3871},
+  {name:'Ford Kansas City Assembly',city:'Claycomo',st:'MO',lat:39.2195,lng:-94.5436},
+  {name:'Ford Chicago Assembly',city:'Chicago',st:'IL',lat:41.7325,lng:-87.6042},
+  {name:'Ford Flat Rock Assembly',city:'Flat Rock',st:'MI',lat:42.0986,lng:-83.2752},
+  {name:'Ford Louisville Assembly',city:'Louisville',st:'KY',lat:38.1560,lng:-85.7870},
+  {name:'Ford Kentucky Truck Plant',city:'Louisville',st:'KY',lat:38.1780,lng:-85.7600},
+  {name:'Ford Ohio Assembly',city:'Avon Lake',st:'OH',lat:41.5014,lng:-82.0277},
+  {name:'Ford Dearborn Truck Plant',city:'Dearborn',st:'MI',lat:42.3026,lng:-83.2008},
+  {name:'Stellantis Warren Truck',city:'Warren',st:'MI',lat:42.5303,lng:-83.0452},
+  {name:'Stellantis Jefferson North',city:'Detroit',st:'MI',lat:42.3688,lng:-82.9788},
+  {name:'Stellantis Sterling Heights Assem.',city:'Sterling Heights',st:'MI',lat:42.5803,lng:-83.0301},
+  {name:'Stellantis Belvidere Assembly',city:'Belvidere',st:'IL',lat:42.2626,lng:-88.8445},
+  {name:'Stellantis Toledo Assembly',city:'Toledo',st:'OH',lat:41.6645,lng:-83.5552},
+  {name:'Toyota Georgetown',city:'Georgetown',st:'KY',lat:38.2098,lng:-84.5608},
+  {name:'Toyota San Antonio',city:'San Antonio',st:'TX',lat:29.5419,lng:-98.3697},
+  {name:'Toyota Princeton',city:'Princeton',st:'IN',lat:38.3556,lng:-87.5675},
+  {name:'Toyota Huntsville',city:'Huntsville',st:'AL',lat:34.7304,lng:-86.5861},
+  {name:'Honda Marysville',city:'Marysville',st:'OH',lat:40.2381,lng:-83.3680},
+  {name:'Honda East Liberty',city:'East Liberty',st:'OH',lat:40.2983,lng:-83.5911},
+  {name:'Honda Lincoln AL',city:'Lincoln',st:'AL',lat:33.6065,lng:-86.2283},
+  {name:'Honda Greensburg',city:'Greensburg',st:'IN',lat:39.3364,lng:-85.4858},
+  {name:'Hyundai Montgomery',city:'Montgomery',st:'AL',lat:32.3792,lng:-86.2614},
+  {name:'Hyundai Bryan County GA',city:'Ellabell',st:'GA',lat:32.0649,lng:-81.5012},
+  {name:'Kia West Point',city:'West Point',st:'GA',lat:32.8882,lng:-85.1860},
+  {name:'BMW Spartanburg',city:'Spartanburg',st:'SC',lat:34.9327,lng:-81.9665},
+  {name:'Mercedes-Benz Vance',city:'Vance',st:'AL',lat:33.1715,lng:-87.2025},
+  {name:'Volkswagen Chattanooga',city:'Chattanooga',st:'TN',lat:35.0456,lng:-85.3097},
+  {name:'Volvo Berkeley County',city:'Ridgeville',st:'SC',lat:33.0987,lng:-80.3190},
+  {name:'Mazda Toyota MTMUS',city:'Huntsville',st:'AL',lat:34.7080,lng:-86.5700},
+  {name:'Subaru Lafayette',city:'Lafayette',st:'IN',lat:40.4168,lng:-86.8753},
+  {name:'Tesla Fremont',city:'Fremont',st:'CA',lat:37.4924,lng:-121.9391},
+  {name:'Tesla Gigafactory Texas',city:'Austin',st:'TX',lat:30.2268,lng:-97.6017},
+  {name:'Rivian Normal',city:'Normal',st:'IL',lat:40.5142,lng:-88.9906},
+  {name:'Lucid Casa Grande',city:'Casa Grande',st:'AZ',lat:32.8795,lng:-111.7574},
+  {name:'Nissan Smyrna',city:'Smyrna',st:'TN',lat:36.0027,lng:-86.5186},
+  {name:'Nissan Canton',city:'Canton',st:'MS',lat:32.6094,lng:-90.0620},
+  {name:'Toyota Cambridge ON (not US)',city:'Georgetown',st:'KY',lat:38.2098,lng:-84.5808},
+  {name:'Subaru Honda of Ind. (HMMC)',city:'Greensburg',st:'IN',lat:39.3500,lng:-85.4800},
+];
+
+// ── Industry layers ───────────────────────────────────────────────────────────
+// NAICS codes for each industry type
+// We fetch by NAICS code which is reliably a single value per facility
+const INDUSTRIES = [
+  { id:'steel',      label:'Iron & Steel / EAF',    naics:'331110', color:'#c0392b' },
+  { id:'cement',     label:'Cement Production',      naics:'327310', color:'#7f5500' },
+  { id:'aluminum',   label:'Aluminum Production',    naics:'331313', color:'#1565c0' },
+  { id:'refinery',   label:'Petroleum Refineries',   naics:'324110', color:'#b71c1c' },
+  { id:'petrochem',  label:'Petrochemical Plants',   naics:'325110', color:'#e65100' },
+  { id:'ammonia',    label:'Ammonia Manufacturing',  naics:'325311', color:'#2e7d32' },
+  { id:'glass',      label:'Glass Production',       naics:'327213', color:'#00838f' },
+  { id:'pulp',       label:'Pulp & Paper',           naics:'322110', color:'#558b2f' },
+  { id:'lime',       label:'Lime Manufacturing',     naics:'327410', color:'#f9a825' },
+  { id:'hydrogen',   label:'Hydrogen Production',    naics:'325120', color:'#0277bd' },
+  { id:'ferroalloy', label:'Ferroalloy / EAF Steel', naics:'331221', color:'#ad1457' },
+  { id:'zinc',       label:'Zinc & Lead Smelting',   naics:'331419', color:'#6a1fa0' },
+  { id:'coal',       label:'Coal Mining',            naics:'212111', color:'#37474f' },
+  { id:'copper',     label:'Copper Smelting',        naics:'331411', color:'#bf6000' },
+  { id:'tire',       label:'Tire & Rubber Mfg',      naics:'326211', color:'#1a237e' },
+  { id:'ship',       label:'Shipbuilding & Repair',  naics:'336611', color:'#004d61' },
+  { id:'coke',       label:'Coke Manufacturing',     naics:'324199', color:'#4a148c' },
+  { id:'paper',      label:'Paper Mills',            naics:'322121', color:'#1b5e20' },
+  { id:'auto',       label:'Auto Assembly Plants',   naics:null, curated:AUTO, color:'#00695c' },
+];
+
+const S = {
+  active: new Set(INDUSTRIES.map(i => i.id)),
+  data: {},
+};
+
+// ── PROXY CONFIG ──────────────────────────────────────────────────────────────
+// Paste your deployed proxy URL below. Set the one you deployed, leave the other null.
+//
+// Cloudflare Worker:  'https://epa-proxy.YOUR-SUBDOMAIN.workers.dev'
+// Vercel Function:    'https://epa-proxy-YOURNAME.vercel.app'
+//
+const CLOUDFLARE_PROXY = null; // e.g. 'https://epa-proxy.acme.workers.dev'
+const VERCEL_PROXY     = null; // e.g. 'https://epa-proxy-acme.vercel.app'
+
+function buildEpaUrl(naics, year) {
+  const epaPath = `PUB_DIM_FACILITY/naics_code/${naics}/year/${year}/rows/0:5000/JSON`;
+  if (CLOUDFLARE_PROXY) return `${CLOUDFLARE_PROXY}/efservice/${epaPath}`;
+  if (VERCEL_PROXY)     return `${VERCEL_PROXY}/api/proxy?path=${encodeURIComponent(epaPath)}`;
+  return `https://data.epa.gov/efservice/${epaPath}`;
+}
+
+// ── EPA Fetch ─────────────────────────────────────────────────────────────────
+// Fetch multiple years in parallel and deduplicate — ensures we catch all
+// facilities even if they didn't report in a specific year
+async function fetchInd(ind) {
+  if (ind.curated || !ind.naics) {
+    return ind.curated
+      .filter(f => f.lat >= 24 && f.lat <= 50 && f.lng >= -125 && f.lng <= -65)
+      .map(f => ({...f, emissions:0, color:ind.color, label:ind.label}));
+  }
+
+  // Fetch 2021, 2022, and 2023 in parallel to maximize facility coverage
+  const years = [2023, 2022, 2021];
+  const allRows = [];
+
+  await Promise.allSettled(years.map(async year => {
+    const url = buildEpaUrl(ind.naics, year);
+    console.log(`Fetching ${ind.label} (${year}): ${url}`);
+    const r = await fetch(url);
+    if (!r.ok) return;
+    const json = await r.json();
+    if (Array.isArray(json)) allRows.push(...json);
+  }));
+
+  console.log(`Total raw rows for ${ind.label}: ${allRows.length}`);
+
+  // Deduplicate by facility_id — keep first occurrence (most recent year first)
+  const seen = new Set();
+  const results = allRows.map(f => ({
+    name: f.facility_name || '',
+    lat: parseFloat(f.latitude),
+    lng: parseFloat(f.longitude),
+    city: f.city || '',
+    st: f.state || '',
+    emissions: parseFloat(f.process_stationary_cml || f.reported_total_emissions || 0) || 0,
+    color: ind.color,
+    label: ind.label,
+    fid: f.facility_id,
+  })).filter(f => {
+    if (isNaN(f.lat) || isNaN(f.lng)) return false;
+    if (f.lat < 18 || f.lat > 72 || f.lng < -180 || f.lng > -60) return false;
+    if (seen.has(f.fid)) return false;
+    seen.add(f.fid);
+    return true;
+  });
+
+  console.log(`Unique facilities for ${ind.label}: ${results.length}`);
+  return results;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+function buildSidebar() {
+  const list = document.getElementById('layer-list');
+  list.innerHTML = '';
+  INDUSTRIES.forEach(ind => {
+    const row = document.createElement('div');
+    row.className = 'lrow';
+    row.dataset.id = ind.id;
+    row.innerHTML = `
+      <div class="lswatch" style="background:${ind.color}"></div>
+      <div class="lname">${ind.label}</div>
+      <div class="lcnt" id="c-${ind.id}">…</div>
+      <div class="ltick">✓</div>
+    `;
+    row.addEventListener('click', () => {
+      if (S.active.has(ind.id)) { S.active.delete(ind.id); row.classList.add('off'); }
+      else { S.active.add(ind.id); row.classList.remove('off'); }
+      renderDots();
+    });
+    list.appendChild(row);
+  });
+}
+
+function updateCounts() {
+  INDUSTRIES.forEach(ind => {
+    const el = document.getElementById('c-' + ind.id);
+    if (el) el.textContent = (S.data[ind.id] || []).length || '…';
+  });
+}
+
+function toggleAll() {
+  const allOn = S.active.size === INDUSTRIES.length;
+  INDUSTRIES.forEach(ind => allOn ? S.active.delete(ind.id) : S.active.add(ind.id));
+  document.querySelectorAll('.lrow').forEach(r => allOn ? r.classList.add('off') : r.classList.remove('off'));
+  renderDots();
+}
+
+// ── Projection ────────────────────────────────────────────────────────────────
+let _proj = null;
+
+function project(lon, lat) {
+  if (!_proj) return [null, null];
+  const p = _proj([lon, lat]);
+  return p || [null, null];
+}
+
+// ── Render Dots ───────────────────────────────────────────────────────────────
+function renderDots() {
+  const svg = document.getElementById('map-svg');
+  svg.querySelectorAll('.dot').forEach(d => d.remove());
+  let total = 0;
+  for (const ind of INDUSTRIES) {
+    if (!S.active.has(ind.id)) continue;
+    const facs = S.data[ind.id] || [];
+    for (const f of facs) {
+      const [px, py] = project(f.lng, f.lat);
+      if (px === null || isNaN(px) || px < 2 || px > 958 || py < 2 || py > 598) continue;
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('class','dot');
+      c.setAttribute('cx', px.toFixed(1));
+      c.setAttribute('cy', py.toFixed(1));
+      const r = f.emissions > 1000
+        ? Math.max(4, Math.min(16, 2 + Math.log10(f.emissions) * 1.9))
+        : 5;
+      c.setAttribute('r', r.toFixed(1));
+      c.setAttribute('fill', f.color);
+      c.setAttribute('fill-opacity','0.92');
+      c.setAttribute('stroke', '#ffffff');
+      c.setAttribute('stroke-width','1.2');
+      c.setAttribute('stroke-opacity','0.85');
+      c.addEventListener('mouseenter', e => showTT(e, f));
+      c.addEventListener('mouseleave', () => { document.getElementById('tt').style.display='none'; });
+      svg.appendChild(c);
+      total++;
+    }
+  }
+  document.getElementById('fcnt').textContent = total.toLocaleString();
+}
+
+function showTT(e, f) {
+  const tt = document.getElementById('tt');
+  const wrap = document.getElementById('map-wrap');
+  const rect = wrap.getBoundingClientRect();
+  tt.style.display = 'block';
+  tt.innerHTML = `
+    <div class="ttn">${f.name || 'Unnamed Facility'}</div>
+    <div class="tttype" style="color:${f.color}">${f.label}</div>
+    <div class="ttloc">${[f.city, f.st].filter(Boolean).join(', ')}</div>
+    ${f.emissions > 0 ? `<div class="ttem">CO₂e: ${Math.round(f.emissions).toLocaleString()} MT/yr</div>` : ''}
+  `;
+  let x = e.clientX - rect.left + 14;
+  let y = e.clientY - rect.top - 8;
+  if (x + 275 > rect.width - 10) x -= 289;
+  if (y + 110 > rect.height - 10) y -= 110;
+  tt.style.left = x + 'px';
+  tt.style.top = y + 'px';
+}
+
+// ── Base Map ──────────────────────────────────────────────────────────────────
+async function drawBase() {
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js');
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js');
+  const topo = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r => r.json());
+
+  const proj = d3.geoAlbersUsa().scale(1280).translate([480,310]);
+  _proj = proj;
+  const path = d3.geoPath().projection(proj);
+  const svg = document.getElementById('map-svg');
+  const states = topojson.feature(topo, topo.objects.states);
+  const mesh = topojson.mesh(topo, topo.objects.states, (a,b) => a!==b);
+
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.id = 'base';
+  states.features.forEach(feat => {
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d', path(feat)||'');
+    p.setAttribute('class','sp');
+    g.appendChild(p);
+  });
+  const b = document.createElementNS('http://www.w3.org/2000/svg','path');
+  b.setAttribute('d', path(mesh)||'');
+  b.setAttribute('class','sb');
+  g.appendChild(b);
+  svg.appendChild(g);
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+async function main() {
+  const setS = t => document.getElementById('stxt').textContent = t;
+  const setL = t => document.getElementById('ltxt').textContent = t;
+
+  setL('LOADING BASE MAP…');
+  setS('Fetching US states TopoJSON boundary…');
+  try { await drawBase(); } catch(e) { console.warn('Base map failed:', e); }
+
+  buildSidebar();
+
+  setS('Querying EPA Envirofacts API for industrial facilities…');
+  let fetched = 0;
+  const errors = [];
+
+  await Promise.allSettled(INDUSTRIES.map(async ind => {
+    try {
+      setL(`FETCHING: ${ind.label.toUpperCase()}…`);
+      const facs = await fetchInd(ind);
+      S.data[ind.id] = facs;
+      fetched++;
+      setS(`[${fetched}/${INDUSTRIES.length}] ${ind.label} — ${facs.length} facilities`);
+      updateCounts();
+      renderDots();
+    } catch(e) {
+      errors.push(ind.label);
+      S.data[ind.id] = [];
+      console.warn('Failed:', ind.label, e);
+    }
+  }));
+
+  document.getElementById('loading').style.display = 'none';
+  document.querySelector('.sdot').classList.remove('blink');
+  document.querySelector('.sdot').style.background = '#2e7d32';
+
+  const total = Object.values(S.data).flat().length;
+  setS(`✓ ${total.toLocaleString()} facilities · ${fetched}/${INDUSTRIES.length} sectors loaded · Source: EPA GHGRP Envirofacts API`);
+
+  if (errors.length) {
+    const eb = document.getElementById('errbanner');
+    eb.style.display = 'block';
+    eb.textContent = `⚠ Some layers not accessible via EPA API (CORS may apply in browser): ${errors.slice(0,4).join(', ')}`;
+    setTimeout(() => eb.style.display='none', 10000);
+  }
+  renderDots();
+}
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+main().catch(e => {
+  console.error(e);
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('stxt').textContent = 'Error — check browser console';
+});
+</script>
+</body>
+</html>
