@@ -202,6 +202,23 @@ header p {
   letter-spacing: 0.06em;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
+#reset-btn {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  background: white;
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.15s;
+  z-index: 50;
+}
+#reset-btn:hover { border-color: var(--accent); color: var(--accent); }
 #attribution {
   position: absolute;
   bottom: 10px;
@@ -266,6 +283,7 @@ header p {
       <div class="ring"></div>
       <p id="ltxt">LOADING…</p>
     </div>
+    <button id="reset-btn" onclick="resetZoom()">⟳ RESET VIEW</button>
     <svg id="map-svg" viewBox="0 0 960 600"></svg>
     <div id="tt"></div>
     <div id="counter">FACILITIES: <span id="fcnt">—</span></div>
@@ -546,6 +564,8 @@ function project(lon, lat) {
 function renderDots() {
   const svg = document.getElementById('map-svg');
   svg.querySelectorAll('.dot').forEach(d => d.remove());
+  // If zoom group exists, append dots there so they transform with the map
+  const container = document.getElementById('zoom-g') || svg;
   let total = 0;
   for (const ind of INDUSTRIES) {
     if (!S.active.has(ind.id)) continue;
@@ -566,7 +586,7 @@ function renderDots() {
       c.setAttribute('stroke-opacity','0.85');
       c.addEventListener('mouseenter', e => showTT(e, f));
       c.addEventListener('mouseleave', () => { document.getElementById('tt').style.display='none'; });
-      svg.appendChild(c);
+      container.appendChild(c);
       total++;
     }
   }
@@ -593,6 +613,8 @@ function showTT(e, f) {
 }
 
 // ── Base Map ──────────────────────────────────────────────────────────────────
+let _zoom, _zoomG;
+
 async function drawBase() {
   await loadScript('https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js');
   await loadScript('https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js');
@@ -601,23 +623,45 @@ async function drawBase() {
   const proj = d3.geoAlbersUsa().scale(1280).translate([480,310]);
   _proj = proj;
   const path = d3.geoPath().projection(proj);
-  const svg = document.getElementById('map-svg');
+  const svg = d3.select('#map-svg');
   const states = topojson.feature(topo, topo.objects.states);
   const mesh = topojson.mesh(topo, topo.objects.states, (a,b) => a!==b);
 
-  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-  g.id = 'base';
+  // Single group that zoom transforms will be applied to
+  const g = svg.append('g').attr('id', 'zoom-g');
+  _zoomG = g;
+
+  // Base layer subgroup
+  const base = g.append('g').attr('id','base');
   states.features.forEach(feat => {
-    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
-    p.setAttribute('d', path(feat)||'');
-    p.setAttribute('class','sp');
-    g.appendChild(p);
+    base.append('path')
+      .attr('d', path(feat)||'')
+      .attr('class','sp');
   });
-  const b = document.createElementNS('http://www.w3.org/2000/svg','path');
-  b.setAttribute('d', path(mesh)||'');
-  b.setAttribute('class','sb');
-  g.appendChild(b);
-  svg.appendChild(g);
+  base.append('path')
+    .attr('d', path(mesh)||'')
+    .attr('class','sb');
+
+  // Dots will be appended to zoom-g via renderDots
+
+  // Set up D3 zoom
+  _zoom = d3.zoom()
+    .scaleExtent([1, 20])
+    .on('zoom', (event) => {
+      g.attr('transform', event.transform);
+      // Scale dot radius and stroke inversely so dots don't grow huge when zoomed
+      const k = event.transform.k;
+      d3.selectAll('.dot')
+        .attr('r', (5 / k).toFixed(2))
+        .attr('stroke-width', (1.2 / k).toFixed(2));
+    });
+
+  svg.call(_zoom);
+}
+
+function resetZoom() {
+  const svg = d3.select('#map-svg');
+  svg.transition().duration(500).call(_zoom.transform, d3.zoomIdentity);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
