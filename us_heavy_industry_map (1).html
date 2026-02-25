@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>U.S. Heavy Industry Atlas</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap');
+:root {
+  --bg: #f0ede8;
+  --surface: #ffffff;
+  --surface2: #f7f5f2;
+  --border: #d8d2c8;
+  --accent: #b5460f;
+  --text: #2c2820;
+  --dim: #8a8278;
+  --bright: #1a1510;
+  --map-fill: #dde4ed;
+  --map-border: #b8c4d4;
+  --dem: #1565c0;
+  --rep: #c62828;
+  --ind: #6a1f9a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Barlow Condensed', sans-serif;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+header {
+  padding: 12px 24px;
+  background: var(--bright);
+  border-bottom: 3px solid var(--accent);
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  flex-shrink: 0;
+}
+h1 { font-size: 1.7rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; color: #fff; }
+h1 em { color: #f5a623; font-style: normal; }
+header p { font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; color: #888; letter-spacing: 0.05em; }
+#status {
+  padding: 5px 24px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem; color: #6b6055;
+  letter-spacing: 0.06em;
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
+.blink { animation: blink 1.2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.sdot { width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+#main-area { display:flex; flex:1; height:calc(100vh - 88px); overflow:hidden; }
+#sidebar {
+  width: 248px; background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden; flex-shrink: 0;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.06);
+}
+#sidebar-hdr {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem; letter-spacing: 0.14em;
+  color: var(--dim); text-transform: uppercase;
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--surface2);
+}
+#toggle-all {
+  background: none; border: 1px solid var(--border); color: var(--dim);
+  font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+  letter-spacing: 0.06em; padding: 2px 7px; cursor: pointer; transition: all 0.15s;
+}
+#toggle-all:hover { border-color: var(--accent); color: var(--accent); }
+#layer-list { overflow-y: auto; flex: 1; }
+#layer-list::-webkit-scrollbar { width: 4px; }
+#layer-list::-webkit-scrollbar-thumb { background: var(--border); }
+.lrow {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 14px; cursor: pointer;
+  border-bottom: 1px solid #f0ece6;
+  user-select: none; transition: background 0.12s;
+}
+.lrow:hover { background: #faf8f5; }
+.lrow.off { opacity: 0.35; }
+.lswatch { width:13px; height:13px; border-radius:50%; flex-shrink:0; border:2px solid rgba(0,0,0,0.12); }
+.lname { flex:1; font-size:0.9rem; line-height:1.2; color:var(--text); font-weight:600; }
+.lcnt { font-family:'Share Tech Mono',monospace; font-size:0.68rem; color:var(--dim); min-width:28px; text-align:right; }
+.ltick { width:14px; height:14px; border:1.5px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:0.6rem; color:var(--accent); }
+.lrow.off .ltick { color:transparent; }
+.lrow:not(.off) .ltick { border-color:var(--accent); }
+
+/* District filter section */
+#dist-section {
+  border-top: 1px solid var(--border);
+  padding: 10px 14px;
+  background: var(--surface2);
+  flex-shrink: 0;
+}
+#dist-section label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem; letter-spacing: 0.1em;
+  color: var(--dim); text-transform: uppercase;
+  display: block; margin-bottom: 5px;
+}
+#dist-select {
+  width: 100%; padding: 5px 8px;
+  border: 1px solid var(--border);
+  background: white; font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.85rem; color: var(--text); cursor: pointer;
+  outline: none;
+}
+#dist-select:focus { border-color: var(--accent); }
+#dist-clear {
+  margin-top: 5px; width: 100%; padding: 4px;
+  background: none; border: 1px solid var(--border);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem; color: var(--dim);
+  cursor: pointer; letter-spacing: 0.06em;
+  transition: all 0.15s;
+}
+#dist-clear:hover { border-color: var(--accent); color: var(--accent); }
+
+#sfooter {
+  border-top: 1px solid var(--border); padding: 10px 14px;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.62rem;
+  color: var(--dim); line-height: 1.7; flex-shrink: 0;
+  background: var(--surface2);
+}
+#right-panel { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+#map-wrap { flex:1; position:relative; overflow:hidden; background:var(--bg); min-height: 300px; }
+#map-svg { width:100%; height:100%; display:block; }
+.sp { fill:var(--map-fill); stroke:var(--map-border); stroke-width:0.6; }
+.sb { fill:none; stroke:#a0afc4; stroke-width:0.8; }
+.cd { fill: rgba(100,140,200,0.08); stroke: rgba(80,120,180,0.35); stroke-width:0.4; }
+.cd.active { fill: rgba(100,140,200,0.25); stroke: rgba(50,100,180,0.7); stroke-width:1; }
+.dot { cursor:pointer; }
+.dot:hover { opacity:1 !important; filter:brightness(1.15); }
+#tt {
+  position:absolute; background:#fff;
+  border:1px solid var(--border); border-left:4px solid var(--accent);
+  padding:9px 13px; pointer-events:none; display:none;
+  max-width:270px; z-index:100;
+  box-shadow:0 6px 24px rgba(0,0,0,0.14); font-size:0.83rem;
+}
+.ttn { font-weight:700; color:var(--bright); font-size:0.9rem; margin-bottom:3px; }
+.tttype { font-family:'Share Tech Mono',monospace; font-size:0.68rem; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:5px; font-weight:700; }
+.ttloc { color:var(--dim); font-size:0.76rem; }
+.ttcd { font-family:'Share Tech Mono',monospace; font-size:0.68rem; margin-top:4px; }
+.ttcd .dem { color:var(--dem); font-weight:700; }
+.ttcd .rep { color:var(--rep); font-weight:700; }
+.ttcd .ind { color:var(--ind); font-weight:700; }
+#counter {
+  position:absolute; top:12px; right:16px; background:white;
+  border:1px solid var(--border); padding:6px 14px;
+  font-family:'Share Tech Mono',monospace; font-size:0.75rem;
+  color:var(--accent); letter-spacing:0.06em;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+#reset-btn {
+  position:absolute; top:12px; left:16px; background:white;
+  border:1px solid var(--border); padding:6px 14px;
+  font-family:'Share Tech Mono',monospace; font-size:0.72rem;
+  color:var(--text); letter-spacing:0.06em; cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08); transition:all 0.15s; z-index:50;
+}
+#reset-btn:hover { border-color:var(--accent); color:var(--accent); }
+#attribution {
+  position:absolute; bottom:10px; right:14px;
+  font-family:'Share Tech Mono',monospace; font-size:0.58rem;
+  color:var(--dim); text-align:right; line-height:1.7;
+  background:rgba(255,255,255,0.7); padding:4px 8px; border-radius:2px;
+}
+#loading {
+  position:absolute; inset:0; background:rgba(240,237,232,0.92);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:14px; z-index:200;
+}
+#loading p { font-family:'Share Tech Mono',monospace; font-size:0.8rem; color:var(--accent); letter-spacing:0.1em; }
+.ring { width:36px; height:36px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+#errbanner {
+  position:absolute; bottom:40px; left:50%; transform:translateX(-50%);
+  background:#fff3f0; border:1px solid #e88; color:#c0392b;
+  padding:7px 16px; font-family:'Share Tech Mono',monospace; font-size:0.7rem;
+  letter-spacing:0.05em; display:none; max-width:520px; text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* ── TABLE SECTION ── */
+#table-section {
+  background: var(--surface);
+  border-top: 2px solid var(--accent);
+  padding: 0;
+  flex-shrink: 0;
+}
+#table-header {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 20px;
+  background: var(--bright);
+  flex-wrap: wrap;
+}
+#table-header h2 {
+  font-size: 1rem; font-weight: 900;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: white; flex-shrink: 0;
+}
+#table-search {
+  padding: 6px 12px; border: 1px solid #555;
+  background: #2a2520; color: white;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+  letter-spacing: 0.04em; outline: none; width: 260px;
+}
+#table-search::placeholder { color: #777; }
+#table-search:focus { border-color: var(--accent); }
+#sort-select {
+  padding: 6px 12px; border: 1px solid #555;
+  background: #2a2520; color: white;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+  letter-spacing: 0.04em; outline: none; cursor: pointer;
+}
+#party-filter {
+  display: flex; gap: 6px;
+}
+.pf-btn {
+  padding: 5px 12px; border: 1px solid #555;
+  background: none; color: #999;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.68rem;
+  letter-spacing: 0.06em; cursor: pointer; transition: all 0.15s;
+}
+.pf-btn.active-dem { border-color:var(--dem); color:var(--dem); background:rgba(21,101,192,0.15); }
+.pf-btn.active-rep { border-color:var(--rep); color:var(--rep); background:rgba(198,40,40,0.15); }
+.pf-btn.active-all { border-color:#888; color:white; }
+#tbl-count {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+  color: #888; margin-left: auto;
+}
+#table-wrap {
+  overflow-x: auto; max-height: 380px; overflow-y: auto;
+}
+#table-wrap::-webkit-scrollbar { height: 4px; width: 4px; }
+#table-wrap::-webkit-scrollbar-thumb { background: var(--border); }
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.85rem;
+}
+thead th {
+  position: sticky; top: 0;
+  background: var(--surface2); padding: 9px 14px;
+  text-align: left; font-weight: 700;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--dim);
+  border-bottom: 2px solid var(--border);
+  cursor: pointer; user-select: none;
+  white-space: nowrap;
+}
+thead th:hover { color: var(--accent); }
+thead th.sorted { color: var(--accent); }
+thead th.sorted::after { content: " ↑"; }
+thead th.sorted.desc::after { content: " ↓"; }
+tbody tr { border-bottom: 1px solid #f0ece6; transition: background 0.1s; }
+tbody tr:hover { background: #faf8f5; cursor: pointer; }
+tbody td { padding: 8px 14px; vertical-align: middle; }
+.td-rank {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem; color: var(--dim); width: 36px;
+}
+.td-dist {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem; font-weight: 700; white-space: nowrap;
+}
+.td-rep { font-weight: 600; }
+.td-party {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem; font-weight: 700;
+  white-space: nowrap;
+}
+.party-D { color: var(--dem); }
+.party-R { color: var(--rep); }
+.party-I { color: var(--ind); }
+.td-industry { color: var(--dim); font-size: 0.8rem; }
+.td-facility { font-weight: 600; }
+.td-city { color: var(--dim); font-size: 0.8rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>U.S. <em>Heavy Industry</em> Atlas</h1>
+  <p>EPA GREENHOUSE GAS REPORTING PROGRAM · ENVIROFACTS PUBLIC API · LIVE DATA</p>
+</header>
+<div id="status">
+  <div class="sdot blink"></div>
+  <span id="stxt">Initializing…</span>
+</div>
+<div id="main-area">
+  <div id="sidebar">
+    <div id="sidebar-hdr">
+      Industry Layers
+      <button id="toggle-all" onclick="toggleAll()">TOGGLE ALL</button>
+    </div>
+    <div id="layer-list"></div>
+    <div id="dist-section">
+      <label>Filter by Congressional District</label>
+      <select id="dist-select" onchange="filterByDistrict(this.value)">
+        <option value="">— All Districts —</option>
+      </select>
+      <button id="dist-clear" onclick="filterByDistrict('')">CLEAR FILTER</button>
+    </div>
+    <div id="sfooter">
+      SOURCES:<br>
+      EPA GHGRP (data.epa.gov)<br>
+      AISI &amp; Company Filings<br>
+      (Integrated Mills, EAFs)<br>
+      Public Records (Auto Plants)<br>
+      Census TIGER (Districts)<br>
+      @unitedstates/congress<br><br>
+      HOVER DOTS FOR DETAILS<br>
+      CLICK ROWS TO TOGGLE
+    </div>
+  </div>
+  <div id="right-panel">
+    <div id="map-wrap">
+      <div id="loading">
+        <div class="ring"></div>
+        <p id="ltxt">LOADING…</p>
+      </div>
+      <button id="reset-btn" onclick="resetZoom()">⟳ RESET VIEW</button>
+      <svg id="map-svg" viewBox="0 0 960 600"></svg>
+      <div id="tt"></div>
+      <div id="counter">FACILITIES: <span id="fcnt">—</span></div>
+      <div id="attribution">EPA GHGRP · Census TIGER 119th Congress<br>epa.gov/ghgreporting</div>
+      <div id="errbanner"></div>
+    </div>
+    <div id="table-section">
+      <div id="table-header">
+        <h2>Facility Directory</h2>
+        <input id="table-search" type="text" placeholder="Search facilities, reps, districts…" oninput="filterTable()">
+        <select id="sort-select" onchange="filterTable()">
+          <option value="district-count">Sort: Districts by Facility Count</option>
+          <option value="district-az">Sort: District A→Z</option>
+          <option value="facility-az">Sort: Facility A→Z</option>
+          <option value="rep-az">Sort: Representative A→Z</option>
+          <option value="industry">Sort: Industry Type</option>
+        </select>
+        <div id="party-filter">
+          <button class="pf-btn active-all" data-party="all" onclick="setPartyFilter(this)">ALL</button>
+          <button class="pf-btn" data-party="D" onclick="setPartyFilter(this)">DEM</button>
+          <button class="pf-btn" data-party="R" onclick="setPartyFilter(this)">REP</button>
+        </div>
+        <span id="tbl-count"></span>
+      </div>
+      <div id="table-wrap">
+        <table id="facility-table">
+          <thead>
+            <tr>
+              <th class="td-rank">#</th>
+              <th onclick="setSortCol('district')">District</th>
+              <th onclick="setSortCol('rep')">Representative</th>
+              <th onclick="setSortCol('party')">Party</th>
+              <th onclick="setSortCol('facility')">Facility</th>
+              <th onclick="setSortCol('industry')">Industry</th>
+              <th onclick="setSortCol('city')">City / State</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Curated Integrated Steel Mills ───────────────────────────────────────────
+// True blast furnace / basic oxygen furnace operations only
+// Source: AISI, company reports
+const INTEGRATED_MILLS = [
+  {name:'US Steel Gary Works',              city:'Gary',          st:'IN', lat:41.5906, lng:-87.3473},
+  {name:'US Steel Mon Valley Works',        city:'Braddock',      st:'PA', lat:40.4023, lng:-79.8673},
+  {name:'US Steel Granite City Works',      city:'Granite City',  st:'IL', lat:38.7010, lng:-90.1487},
+  {name:'Cleveland-Cliffs Burns Harbor',    city:'Burns Harbor',  st:'IN', lat:41.6256, lng:-87.1339},
+  {name:'Cleveland-Cliffs Cleveland Works', city:'Cleveland',     st:'OH', lat:41.4280, lng:-81.6784},
+  {name:'Cleveland-Cliffs Middletown',      city:'Middletown',    st:'OH', lat:39.5151, lng:-84.3983},
+  {name:'Cleveland-Cliffs Dearborn',        city:'Dearborn',      st:'MI', lat:42.3126, lng:-83.2126},
+];
+
+// ── Curated EAF Mini-Mill Facilities ─────────────────────────────────────────
+// Source: public company filings, AISI, company websites
+const EAF_MILLS = [
+  // Nucor — largest US steel producer, all-EAF
+  {name:'Nucor Steel Birmingham',        city:'Birmingham',      st:'AL', lat:33.5279, lng:-86.7975},
+  {name:'Nucor Steel Decatur',           city:'Decatur',         st:'AL', lat:34.5437, lng:-86.9833},
+  {name:'Nucor Steel Tuscaloosa',        city:'Tuscaloosa',      st:'AL', lat:33.1789, lng:-87.5286},
+  {name:'Nucor Steel Auburn',            city:'Auburn',          st:'NY', lat:42.9317, lng:-76.5658},
+  {name:'Nucor Steel Jewett',            city:'Jewett',          st:'TX', lat:31.3607, lng:-96.1458},
+  {name:'Nucor Steel Norfolk',           city:'Norfolk',         st:'NE', lat:41.9856, lng:-97.4170},
+  {name:'Nucor Steel Kankakee',          city:'Bourbonnais',     st:'IL', lat:41.1531, lng:-87.8840},
+  {name:'Nucor Steel Memphis',           city:'Memphis',         st:'TN', lat:35.1495, lng:-90.0490},
+  {name:'Nucor Steel Hertford',          city:'Cofield',         st:'NC', lat:36.3460, lng:-76.9180},
+  {name:'Nucor Steel Seattle',           city:'Seattle',         st:'WA', lat:47.5480, lng:-122.3340},
+  {name:'Nucor Steel Crawfordsville',    city:'Crawfordsville',  st:'IN', lat:40.0412, lng:-86.8936},
+  {name:'Nucor Steel Hickman',           city:'Blytheville',     st:'AR', lat:35.9270, lng:-89.8910},
+  {name:'Nucor Steel Gallatin',          city:'Ghent',           st:'KY', lat:38.7210, lng:-84.9960},
+  {name:'Nucor Steel Darlington',        city:'Darlington',      st:'SC', lat:34.3046, lng:-79.8753},
+  {name:'Nucor Steel Charleston',        city:'Berkeley County', st:'SC', lat:33.1960, lng:-79.9670},
+  {name:'Nucor Steel Plymouth',          city:'Plymouth',        st:'UT', lat:41.8760, lng:-112.1450},
+  {name:'Nucor Steel Longview',          city:'Longview',        st:'TX', lat:32.5007, lng:-94.7405},
+  {name:'Nucor Steel Marion',            city:'Marion',          st:'OH', lat:40.5887, lng:-83.1285},
+  {name:'Nucor Steel Huger',             city:'Huger',           st:'SC', lat:33.0840, lng:-79.8280},
+  {name:'Nucor Steel Brandenburg',       city:'Brandenburg',     st:'KY', lat:37.9990, lng:-86.1690},
+  // Steel Dynamics
+  {name:'SDI Butler',                    city:'Butler',          st:'IN', lat:41.4298, lng:-84.8744},
+  {name:'SDI Pittsboro',                 city:'Pittsboro',       st:'IN', lat:39.8609, lng:-86.4703},
+  {name:'SDI Roanoke',                   city:'Roanoke',         st:'VA', lat:37.2710, lng:-79.9414},
+  {name:'SDI Columbus',                  city:'Columbus',        st:'MS', lat:33.4957, lng:-88.4273},
+  {name:'SDI Sinton',                    city:'Sinton',          st:'TX', lat:28.0338, lng:-97.5088},
+  {name:'SDI New Millennium Indiana',    city:'Butler',          st:'IN', lat:41.4200, lng:-84.8800},
+  {name:'SDI Structural & Rail',         city:'Columbia City',   st:'IN', lat:41.1256, lng:-85.4897},
+  {name:'SDI Engineered Bar',            city:'Pittsboro',       st:'IN', lat:39.8700, lng:-86.4600},
+  // Commercial Metals Company
+  {name:'CMC Steel Alabama',             city:'Birmingham',      st:'AL', lat:33.4818, lng:-86.7930},
+  {name:'CMC Steel Arkansas',            city:'Seguin',          st:'TX', lat:29.5688, lng:-97.9641},
+  {name:'CMC Steel Arizona',             city:'Mesa',            st:'AZ', lat:33.4152, lng:-111.8315},
+  {name:'CMC Steel Florida',             city:'Sarasota',        st:'FL', lat:27.2364, lng:-82.5307},
+  {name:'CMC Steel Mississippi',         city:'Jackson',         st:'MS', lat:32.2988, lng:-90.1848},
+  {name:'CMC Steel South Carolina',      city:'Cayce',           st:'SC', lat:33.9649, lng:-81.0629},
+  {name:'CMC Steel Tennessee',           city:'Memphis',         st:'TN', lat:35.2271, lng:-89.8767},
+  {name:'CMC Steel Texas',               city:'Seguin',          st:'TX', lat:29.5600, lng:-97.9700},
+  // North Star BlueScope / Other independents
+  {name:'North Star BlueScope Delta',    city:'Delta',           st:'OH', lat:41.5759, lng:-84.0052},
+  {name:'Gerdau Ameristeel Charlotte',   city:'Charlotte',       st:'NC', lat:35.2271, lng:-80.8431},
+  {name:'Gerdau Ameristeel Knoxville',   city:'Knoxville',       st:'TN', lat:35.9606, lng:-83.9207},
+  {name:'Gerdau Ameristeel Petersburg',  city:'Petersburg',      st:'VA', lat:37.2279, lng:-77.4019},
+  {name:'Gerdau Ameristeel Jacksonville',city:'Jacksonville',    st:'FL', lat:30.3322, lng:-81.6557},
+  {name:'Gerdau Ameristeel Wilton',      city:'Wilton',          st:'IA', lat:41.5895, lng:-90.9971},
+  {name:'Gerdau Ameristeel Whitby',      city:'Monroe',          st:'MI', lat:41.9162, lng:-83.3977},
+  {name:'Keystone Steel & Wire',         city:'Bartonville',     st:'IL', lat:40.6367, lng:-89.6540},
+  {name:'Cascade Steel Rolling Mills',   city:'McMinnville',     st:'OR', lat:45.2112, lng:-123.1987},
+  {name:'Chaparral Steel Midlothian',    city:'Midlothian',      st:'TX', lat:32.4821, lng:-96.9939},
+  {name:'Birmingham Utilities',          city:'Pueblo',          st:'CO', lat:38.2544, lng:-104.6091},
+  {name:'Rocky Mountain Steel',          city:'Pueblo',          st:'CO', lat:38.2500, lng:-104.6100},
+  {name:'New Jersey Steel Baron',        city:'Sayreville',      st:'NJ', lat:40.4593, lng:-74.3210},
+  {name:'Atlantic Rebar',                city:'Wilton',          st:'IA', lat:41.5800, lng:-90.9900},
+  {name:'Bayou Steel',                   city:'LaPlace',         st:'LA', lat:30.0688, lng:-90.4760},
+  {name:'Sheffield Steel',               city:'Sand Springs',    st:'OK', lat:36.1420, lng:-96.1080},
+  {name:'Roanoke Electric Steel',        city:'Roanoke',         st:'VA', lat:37.2796, lng:-79.9414},
+  {name:'Georgetown Steel',              city:'Georgetown',      st:'SC', lat:33.3768, lng:-79.2945},
+  {name:'Schnitzer Steel Portland',      city:'Portland',        st:'OR', lat:45.5122, lng:-122.6587},
+  {name:'Nucor Steel Yamato',            city:'Blytheville',     st:'AR', lat:35.9200, lng:-89.9100},
+];
+
+// ── Auto Assembly (curated public knowledge) ──────────────────────────────────
+const AUTO = [
+  {name:'GM Orion Assembly',city:'Orion Township',st:'MI',lat:42.7847,lng:-83.2527},
+  {name:'GM Flint Assembly',city:'Flint',st:'MI',lat:43.0218,lng:-83.6970},
+  {name:'GM Lansing Grand River',city:'Lansing',st:'MI',lat:42.7535,lng:-84.5555},
+  {name:'GM Lansing Delta Township',city:'Lansing',st:'MI',lat:42.8014,lng:-84.6869},
+  {name:'GM Fort Wayne Assembly',city:'Fort Wayne',st:'IN',lat:41.1306,lng:-85.1292},
+  {name:'GM Bowling Green Assembly',city:'Bowling Green',st:'KY',lat:36.9685,lng:-86.4342},
+  {name:'GM Arlington Assembly',city:'Arlington',st:'TX',lat:32.7357,lng:-97.1081},
+  {name:'GM Spring Hill Assembly',city:'Spring Hill',st:'TN',lat:35.7487,lng:-86.9300},
+  {name:'GM Wentzville Assembly',city:'Wentzville',st:'MO',lat:38.8114,lng:-90.8529},
+  {name:'GM Fairfax Assembly',city:'Kansas City',st:'KS',lat:39.1300,lng:-94.6600},
+  {name:'Ford Michigan Assembly',city:'Wayne',st:'MI',lat:42.2853,lng:-83.3871},
+  {name:'Ford Kansas City Assembly',city:'Claycomo',st:'MO',lat:39.2195,lng:-94.5436},
+  {name:'Ford Chicago Assembly',city:'Chicago',st:'IL',lat:41.7325,lng:-87.6042},
+  {name:'Ford Flat Rock Assembly',city:'Flat Rock',st:'MI',lat:42.0986,lng:-83.2752},
+  {name:'Ford Louisville Assembly',city:'Louisville',st:'KY',lat:38.1560,lng:-85.7870},
+  {name:'Ford Kentucky Truck Plant',city:'Louisville',st:'KY',lat:38.1780,lng:-85.7600},
+  {name:'Ford Ohio Assembly',city:'Avon Lake',st:'OH',lat:41.5014,lng:-82.0277},
+  {name:'Ford Dearborn Truck Plant',city:'Dearborn',st:'MI',lat:42.3026,lng:-83.2008},
+  {name:'Stellantis Warren Truck',city:'Warren',st:'MI',lat:42.5303,lng:-83.0452},
+  {name:'Stellantis Jefferson North',city:'Detroit',st:'MI',lat:42.3688,lng:-82.9788},
+  {name:'Stellantis Sterling Heights Assem.',city:'Sterling Heights',st:'MI',lat:42.5803,lng:-83.0301},
+  {name:'Stellantis Belvidere Assembly',city:'Belvidere',st:'IL',lat:42.2626,lng:-88.8445},
+  {name:'Stellantis Toledo Assembly',city:'Toledo',st:'OH',lat:41.6645,lng:-83.5552},
+  {name:'Toyota Georgetown',city:'Georgetown',st:'KY',lat:38.2098,lng:-84.5608},
+  {name:'Toyota San Antonio',city:'San Antonio',st:'TX',lat:29.5419,lng:-98.3697},
+  {name:'Toyota Princeton',city:'Princeton',st:'IN',lat:38.3556,lng:-87.5675},
+  {name:'Toyota Huntsville',city:'Huntsville',st:'AL',lat:34.7304,lng:-86.5861},
+  {name:'Honda Marysville',city:'Marysville',st:'OH',lat:40.2381,lng:-83.3680},
+  {name:'Honda East Liberty',city:'East Liberty',st:'OH',lat:40.2983,lng:-83.5911},
+  {name:'Honda Lincoln AL',city:'Lincoln',st:'AL',lat:33.6065,lng:-86.2283},
+  {name:'Honda Greensburg',city:'Greensburg',st:'IN',lat:39.3364,lng:-85.4858},
+  {name:'Hyundai Montgomery',city:'Montgomery',st:'AL',lat:32.3792,lng:-86.2614},
+  {name:'Hyundai Bryan County GA',city:'Ellabell',st:'GA',lat:32.0649,lng:-81.5012},
+  {name:'Kia West Point',city:'West Point',st:'GA',lat:32.8882,lng:-85.1860},
+  {name:'BMW Spartanburg',city:'Spartanburg',st:'SC',lat:34.9327,lng:-81.9665},
+  {name:'Mercedes-Benz Vance',city:'Vance',st:'AL',lat:33.1715,lng:-87.2025},
+  {name:'Volkswagen Chattanooga',city:'Chattanooga',st:'TN',lat:35.0456,lng:-85.3097},
+  {name:'Volvo Berkeley County',city:'Ridgeville',st:'SC',lat:33.0987,lng:-80.3190},
+  {name:'Mazda Toyota MTMUS',city:'Huntsville',st:'AL',lat:34.7080,lng:-86.5700},
+  {name:'Subaru Lafayette',city:'Lafayette',st:'IN',lat:40.4168,lng:-86.8753},
+  {name:'Tesla Fremont',city:'Fremont',st:'CA',lat:37.4924,lng:-121.9391},
+  {name:'Tesla Gigafactory Texas',city:'Austin',st:'TX',lat:30.2268,lng:-97.6017},
+  {name:'Rivian Normal',city:'Normal',st:'IL',lat:40.5142,lng:-88.9906},
+  {name:'Lucid Casa Grande',city:'Casa Grande',st:'AZ',lat:32.8795,lng:-111.7574},
+  {name:'Nissan Smyrna',city:'Smyrna',st:'TN',lat:36.0027,lng:-86.5186},
+  {name:'Nissan Canton',city:'Canton',st:'MS',lat:32.6094,lng:-90.0620},
+  {name:'Toyota Cambridge ON (not US)',city:'Georgetown',st:'KY',lat:38.2098,lng:-84.5808},
+  {name:'Subaru Honda of Ind. (HMMC)',city:'Greensburg',st:'IN',lat:39.3500,lng:-85.4800},
+];
+
+// ── Industry layers ───────────────────────────────────────────────────────────
+// NAICS codes for each industry type
+// We fetch by NAICS code which is reliably a single value per facility
+const INDUSTRIES = [
+  { id:'integrated',  label:'Integrated Steel Mills',  naics:null, curated:INTEGRATED_MILLS, color:'#c0392b' },
+  { id:'eaf',         label:'Electric Arc Furnaces',    naics:null, curated:EAF_MILLS, color:'#e74c3c' },
+  { id:'cement',     label:'Cement Production',      naics:'327310', color:'#7f5500' },
+  { id:'aluminum',   label:'Aluminum Production',    naics:'331313', color:'#1565c0' },
+  { id:'refinery',   label:'Petroleum Refineries',   naics:'324110', color:'#b71c1c' },
+  { id:'petrochem',  label:'Petrochemical Plants',   naics:'325110', color:'#e65100' },
+  { id:'ammonia',    label:'Ammonia Manufacturing',  naics:'325311', color:'#2e7d32' },
+  { id:'glass',      label:'Glass Production',       naics:'327213', color:'#00838f' },
+  { id:'pulp',       label:'Pulp & Paper',           naics:'322110', color:'#558b2f' },
+  { id:'lime',       label:'Lime Manufacturing',     naics:'327410', color:'#f9a825' },
+  { id:'hydrogen',   label:'Hydrogen Production',    naics:'325120', color:'#0277bd' },
+  { id:'coal',       label:'Coal Mining',            naics:'212111', color:'#37474f' },
+  { id:'tire',       label:'Tire & Rubber Mfg',      naics:'326211', color:'#1a237e' },
+  { id:'coke',       label:'Coke Manufacturing',     naics:'324199', color:'#4a148c' },
+  { id:'auto',       label:'Auto Assembly Plants',   naics:null, curated:AUTO, color:'#00695c' },
+];
+
+
+
+// ── PROXY CONFIG ──────────────────────────────────────────────────────────────
+// Paste your deployed proxy URL below. Set the one you deployed, leave the other null.
+//
+// Cloudflare Worker:  'https://epa-proxy.YOUR-SUBDOMAIN.workers.dev'
+// Vercel Function:    'https://epa-proxy-YOURNAME.vercel.app'
+//
+
+// ── PROXY CONFIG ──────────────────────────────────────────────────────────────
+const CLOUDFLARE_PROXY = 'https://long-snow-436c.bdaviskc.workers.dev'; // Cloudflare Worker
+const VERCEL_PROXY     = null; // e.g. 'https://epa-proxy-acme.vercel.app'
+
+function buildEpaUrl(naics, year) {
+  const epaPath = `PUB_DIM_FACILITY/naics_code/${naics}/year/${year}/rows/0:5000/JSON`;
+  if (CLOUDFLARE_PROXY) return `${CLOUDFLARE_PROXY}/efservice/${epaPath}`;
+  if (VERCEL_PROXY)     return `${VERCEL_PROXY}/api/proxy?path=${encodeURIComponent(epaPath)}`;
+  return `https://data.epa.gov/efservice/${epaPath}`;
+}
+
+// ── EPA Fetch ─────────────────────────────────────────────────────────────────
+async function fetchInd(ind) {
+  if (ind.curated || !ind.naics) {
+    return ind.curated
+      .filter(f => f.lat >= 24 && f.lat <= 50 && f.lng >= -125 && f.lng <= -65)
+      .map(f => ({...f, emissions:0, color:ind.color, label:ind.label}));
+  }
+  const years = [2023, 2022, 2021];
+  const allRows = [];
+  await Promise.allSettled(years.map(async year => {
+    const url = buildEpaUrl(ind.naics, year);
+    const r = await fetch(url);
+    if (!r.ok) return;
+    const json = await r.json();
+    if (Array.isArray(json)) allRows.push(...json);
+  }));
+  const seen = new Set();
+  return allRows.map(f => ({
+    name: f.facility_name || '',
+    lat: parseFloat(f.latitude),
+    lng: parseFloat(f.longitude),
+    city: f.city || '',
+    st: f.state || '',
+    emissions: 0,
+    color: ind.color,
+    label: ind.label,
+    fid: f.facility_id,
+  })).filter(f => {
+    if (isNaN(f.lat) || isNaN(f.lng)) return false;
+    if (f.lat < 18 || f.lat > 72 || f.lng < -180 || f.lng > -60) return false;
+    if (seen.has(f.fid)) return false;
+    seen.add(f.fid);
+    return true;
+  });
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const S = {
+  active: new Set(INDUSTRIES.map(i => i.id)),
+  data: {},
+  districts: [],      // GeoJSON features for CD boundaries
+  reps: {},           // keyed by "STATE-NN" e.g. "OH-13"
+  districtFilter: '', // currently selected district key
+  tableSort: { col: 'district-count', desc: true },
+  partyFilter: 'all',
+};
+
+// ── Congressional District Data ───────────────────────────────────────────────
+async function loadDistricts() {
+  // Census TIGER 119th Congress districts (simplified 500k)
+  const url = 'https://raw.githubusercontent.com/unitedstates/districts/refs/heads/gh-pages/cds/2022/national.geojson';
+  try {
+    const r = await fetch(url);
+    const gj = await r.json();
+    S.districts = gj.features || [];
+    return true;
+  } catch(e) {
+    console.warn('District GeoJSON load failed:', e);
+    // fallback: try another CDN
+    try {
+      const r2 = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/congressional-districts-10m.json');
+      const topo = await r2.json();
+      const feats = topojson.feature(topo, topo.objects['congressional-districts']).features;
+      S.districts = feats;
+      return true;
+    } catch(e2) {
+      console.warn('Fallback district load failed:', e2);
+      return false;
+    }
+  }
+}
+
+async function loadReps() {
+  // @unitedstates/congress-legislators — current House members
+  const url = 'https://theunitedstates.io/congress-legislators/legislators-current.json';
+  try {
+    const r = await fetch(url);
+    const legislators = await r.json();
+    legislators.forEach(l => {
+      if (l.terms && l.terms.length) {
+        const term = l.terms[l.terms.length - 1];
+        if (term.type === 'rep') {
+          const st = term.state;
+          const dist = String(term.district || 0).padStart(2, '0');
+          const key = `${st}-${dist}`;
+          const name = `${l.name.first} ${l.name.last}`;
+          S.reps[key] = { name, party: term.party, key };
+        }
+      }
+    });
+    return true;
+  } catch(e) {
+    console.warn('Reps load failed:', e);
+    return false;
+  }
+}
+
+// ── Point-in-polygon: assign district to each facility ────────────────────────
+function assignDistricts() {
+  if (!S.districts.length) return;
+  const allFacs = Object.values(S.data).flat();
+  allFacs.forEach(f => {
+    if (f.district) return; // already assigned
+    const pt = [f.lng, f.lat];
+    for (const feat of S.districts) {
+      if (pointInGeoJSONFeature(pt, feat)) {
+        // Extract district key from properties
+        const props = feat.properties || {};
+        const stFips = props.STATEFP || props.state || '';
+        const distNum = props.CD119FP || props.GEOID || props.district || '';
+        // Convert FIPS to state abbrev
+        const st = fipsToState[stFips] || stFips;
+        const distPad = String(parseInt(distNum) || 0).padStart(2, '0');
+        f.district = `${st}-${distPad}`;
+        const rep = S.reps[f.district];
+        f.repName = rep ? rep.name : 'Vacant/Unknown';
+        f.repParty = rep ? rep.party : '?';
+        break;
+      }
+    }
+    if (!f.district) { f.district = '??-??'; f.repName = 'Unknown'; f.repParty = '?'; }
+  });
+}
+
+// ── Minimal point-in-polygon (ray casting) ───────────────────────────────────
+function pointInGeoJSONFeature(pt, feat) {
+  const geom = feat.geometry;
+  if (!geom) return false;
+  if (geom.type === 'Polygon') return pointInPolygon(pt, geom.coordinates);
+  if (geom.type === 'MultiPolygon') return geom.coordinates.some(poly => pointInPolygon(pt, poly));
+  return false;
+}
+function pointInPolygon(pt, rings) {
+  const [x, y] = pt;
+  const ring = rings[0];
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+}
+
+// ── FIPS to State Abbrev ──────────────────────────────────────────────────────
+const fipsToState = {
+  '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
+  '10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL',
+  '18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD',
+  '25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE',
+  '32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND',
+  '39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD',
+  '47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV',
+  '55':'WI','56':'WY','72':'PR'
+};
+
+// ── District dropdown population ──────────────────────────────────────────────
+function populateDistrictDropdown() {
+  const allFacs = Object.values(S.data).flat();
+  // Count facilities per district
+  const counts = {};
+  allFacs.forEach(f => {
+    if (f.district && f.district !== '??-??') {
+      counts[f.district] = (counts[f.district] || 0) + 1;
+    }
+  });
+  // Sort by count desc
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  const sel = document.getElementById('dist-select');
+  sel.innerHTML = '<option value="">— All Districts —</option>';
+  sorted.forEach(([key, cnt]) => {
+    const rep = S.reps[key];
+    const repStr = rep ? ` · ${rep.name} (${rep.party})` : '';
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = `${key}${repStr} — ${cnt} facilit${cnt===1?'y':'ies'}`;
+    sel.appendChild(opt);
+  });
+}
+
+function filterByDistrict(val) {
+  S.districtFilter = val;
+  document.getElementById('dist-select').value = val;
+  renderDots();
+  filterTable();
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+function buildSidebar() {
+  const list = document.getElementById('layer-list');
+  list.innerHTML = '';
+  INDUSTRIES.forEach(ind => {
+    const row = document.createElement('div');
+    row.className = 'lrow';
+    row.dataset.id = ind.id;
+    row.innerHTML = `
+      <div class="lswatch" style="background:${ind.color}"></div>
+      <div class="lname">${ind.label}</div>
+      <div class="lcnt" id="c-${ind.id}">…</div>
+      <div class="ltick">✓</div>
+    `;
+    row.addEventListener('click', () => {
+      if (S.active.has(ind.id)) { S.active.delete(ind.id); row.classList.add('off'); }
+      else { S.active.add(ind.id); row.classList.remove('off'); }
+      renderDots(); filterTable();
+    });
+    list.appendChild(row);
+  });
+}
+
+function updateCounts() {
+  INDUSTRIES.forEach(ind => {
+    const el = document.getElementById('c-' + ind.id);
+    if (el) el.textContent = (S.data[ind.id] || []).length || '…';
+  });
+}
+
+function toggleAll() {
+  const allOn = S.active.size === INDUSTRIES.length;
+  INDUSTRIES.forEach(ind => allOn ? S.active.delete(ind.id) : S.active.add(ind.id));
+  document.querySelectorAll('.lrow').forEach(r => allOn ? r.classList.add('off') : r.classList.remove('off'));
+  renderDots(); filterTable();
+}
+
+// ── Projection ────────────────────────────────────────────────────────────────
+let _proj = null;
+function project(lon, lat) {
+  if (!_proj) return [null, null];
+  const p = _proj([lon, lat]);
+  return p || [null, null];
+}
+
+// ── Render Dots ───────────────────────────────────────────────────────────────
+function renderDots() {
+  const svg = document.getElementById('map-svg');
+  svg.querySelectorAll('.dot').forEach(d => d.remove());
+  const container = document.getElementById('zoom-g') || svg;
+  let total = 0;
+  for (const ind of INDUSTRIES) {
+    if (!S.active.has(ind.id)) continue;
+    const facs = S.data[ind.id] || [];
+    for (const f of facs) {
+      if (S.districtFilter && f.district !== S.districtFilter) continue;
+      const [px, py] = project(f.lng, f.lat);
+      if (px === null || isNaN(px) || px < 2 || px > 958 || py < 2 || py > 598) continue;
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('class','dot');
+      c.setAttribute('cx', px.toFixed(1));
+      c.setAttribute('cy', py.toFixed(1));
+      c.setAttribute('r', '5');
+      c.setAttribute('fill', f.color);
+      c.setAttribute('fill-opacity','0.92');
+      c.setAttribute('stroke', '#ffffff');
+      c.setAttribute('stroke-width','1.2');
+      c.setAttribute('stroke-opacity','0.85');
+      c.addEventListener('mouseenter', e => showTT(e, f));
+      c.addEventListener('mouseleave', () => { document.getElementById('tt').style.display='none'; });
+      container.appendChild(c);
+      total++;
+    }
+  }
+  document.getElementById('fcnt').textContent = total.toLocaleString();
+}
+
+function showTT(e, f) {
+  const tt = document.getElementById('tt');
+  const wrap = document.getElementById('map-wrap');
+  const rect = wrap.getBoundingClientRect();
+  const partyClass = f.repParty === 'Democrat' ? 'dem' : f.repParty === 'Republican' ? 'rep' : 'ind';
+  tt.style.display = 'block';
+  tt.innerHTML = `
+    <div class="ttn">${f.name || 'Unnamed Facility'}</div>
+    <div class="tttype" style="color:${f.color}">${f.label}</div>
+    <div class="ttloc">${[f.city, f.st].filter(Boolean).join(', ')}</div>
+    ${f.district && f.district !== '??-??' ? `<div class="ttcd">District <b>${f.district}</b> · <span class="${partyClass}">${f.repName} (${f.repParty ? f.repParty[0] : '?'})</span></div>` : ''}
+  `;
+  let x = e.clientX - rect.left + 14;
+  let y = e.clientY - rect.top - 8;
+  if (x + 275 > rect.width - 10) x -= 289;
+  if (y + 110 > rect.height - 10) y -= 110;
+  tt.style.left = x + 'px';
+  tt.style.top = y + 'px';
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+let _tableSort = { col: null, desc: false };
+let _partyFilter = 'all';
+
+function getTableRows() {
+  const search = document.getElementById('table-search').value.toLowerCase();
+  const sortVal = document.getElementById('sort-select').value;
+
+  // Count facilities per district for ranking
+  const allFacs = Object.values(S.data).flat();
+  const distCount = {};
+  allFacs.forEach(f => { if (f.district) distCount[f.district] = (distCount[f.district]||0)+1; });
+
+  // Gather active, filtered rows
+  let rows = [];
+  for (const ind of INDUSTRIES) {
+    if (!S.active.has(ind.id)) continue;
+    (S.data[ind.id]||[]).forEach(f => {
+      if (S.districtFilter && f.district !== S.districtFilter) return;
+      if (_partyFilter !== 'all') {
+        const p = f.repParty || '';
+        if (_partyFilter === 'D' && !p.startsWith('Democrat')) return;
+        if (_partyFilter === 'R' && !p.startsWith('Republican')) return;
+      }
+      if (search) {
+        const haystack = `${f.name} ${f.district} ${f.repName} ${f.repParty} ${f.label} ${f.city} ${f.st}`.toLowerCase();
+        if (!haystack.includes(search)) return;
+      }
+      rows.push({ ...f, _distCount: distCount[f.district] || 0 });
+    });
+  }
+
+  // Sort
+  if (sortVal === 'district-count') rows.sort((a,b) => (b._distCount-a._distCount) || (a.district||'').localeCompare(b.district||'')||a.name.localeCompare(b.name));
+  else if (sortVal === 'district-az') rows.sort((a,b) => (a.district||'zzz').localeCompare(b.district||'zzz')||a.name.localeCompare(b.name));
+  else if (sortVal === 'facility-az') rows.sort((a,b) => a.name.localeCompare(b.name));
+  else if (sortVal === 'rep-az') rows.sort((a,b) => (a.repName||'zzz').localeCompare(b.repName||'zzz')||a.name.localeCompare(b.name));
+  else if (sortVal === 'industry') rows.sort((a,b) => a.label.localeCompare(b.label)||a.name.localeCompare(b.name));
+
+  return rows;
+}
+
+function filterTable() {
+  const rows = getTableRows();
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+
+  // Assign district rank numbers
+  const distRank = {};
+  let rank = 1;
+  rows.forEach(r => { if (r.district && !distRank[r.district]) { distRank[r.district] = rank++; } });
+
+  rows.forEach(f => {
+    const tr = document.createElement('tr');
+    const partyLetter = f.repParty ? (f.repParty.startsWith('Democrat')?'D':f.repParty.startsWith('Republican')?'R':'I') : '?';
+    const partyClass = partyLetter === 'D' ? 'party-D' : partyLetter === 'R' ? 'party-R' : 'party-I';
+    tr.innerHTML = `
+      <td class="td-rank">${distRank[f.district]||''}</td>
+      <td class="td-dist">${f.district||'—'}</td>
+      <td class="td-rep">${f.repName||'Unknown'}</td>
+      <td class="td-party ${partyClass}">${partyLetter}</td>
+      <td class="td-facility">${f.name||'—'}</td>
+      <td class="td-industry" style="color:${f.color}">${f.label}</td>
+      <td class="td-city">${[f.city,f.st].filter(Boolean).join(', ')||'—'}</td>
+    `;
+    tr.addEventListener('click', () => {
+      filterByDistrict(f.district === S.districtFilter ? '' : f.district);
+    });
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('tbl-count').textContent = `${rows.length.toLocaleString()} facilities`;
+}
+
+function setSortCol(col) {
+  document.getElementById('sort-select').value = col + '-az';
+  filterTable();
+}
+
+function setPartyFilter(btn) {
+  _partyFilter = btn.dataset.party;
+  document.querySelectorAll('.pf-btn').forEach(b => b.className = 'pf-btn');
+  if (_partyFilter === 'D') btn.classList.add('active-dem');
+  else if (_partyFilter === 'R') btn.classList.add('active-rep');
+  else btn.classList.add('active-all');
+  filterTable();
+}
+
+// ── Base Map ──────────────────────────────────────────────────────────────────
+let _zoom, _zoomG;
+
+async function drawBase() {
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js');
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js');
+  const topo = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r => r.json());
+
+  const proj = d3.geoAlbersUsa().scale(1280).translate([480,310]);
+  _proj = proj;
+  const path = d3.geoPath().projection(proj);
+  const svg = d3.select('#map-svg');
+  const states = topojson.feature(topo, topo.objects.states);
+  const mesh = topojson.mesh(topo, topo.objects.states, (a,b) => a!==b);
+
+  const g = svg.append('g').attr('id', 'zoom-g');
+  _zoomG = g;
+
+  const base = g.append('g').attr('id','base');
+  states.features.forEach(feat => {
+    base.append('path').attr('d', path(feat)||'').attr('class','sp');
+  });
+  base.append('path').attr('d', path(mesh)||'').attr('class','sb');
+
+  _zoom = d3.zoom()
+    .scaleExtent([1, 20])
+    .on('zoom', (event) => {
+      g.attr('transform', event.transform);
+      const k = event.transform.k;
+      d3.selectAll('.dot').attr('r', (5/k).toFixed(2)).attr('stroke-width', (1.2/k).toFixed(2));
+    });
+  svg.call(_zoom);
+}
+
+function resetZoom() {
+  d3.select('#map-svg').transition().duration(500).call(_zoom.transform, d3.zoomIdentity);
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+async function main() {
+  const setS = t => document.getElementById('stxt').textContent = t;
+  const setL = t => document.getElementById('ltxt').textContent = t;
+
+  setL('LOADING BASE MAP…');
+  setS('Fetching US states boundary…');
+  try { await drawBase(); } catch(e) { console.warn('Base map failed:', e); }
+
+  buildSidebar();
+
+  setS('Loading congressional district boundaries…');
+  await loadDistricts();
+
+  setS('Loading representative data…');
+  await loadReps();
+
+  setS('Querying EPA Envirofacts API…');
+  let fetched = 0;
+  await Promise.allSettled(INDUSTRIES.map(async ind => {
+    try {
+      setL(`FETCHING: ${ind.label.toUpperCase()}…`);
+      const facs = await fetchInd(ind);
+      S.data[ind.id] = facs;
+      fetched++;
+      setS(`[${fetched}/${INDUSTRIES.length}] ${ind.label} — ${facs.length} facilities`);
+      updateCounts();
+      renderDots();
+    } catch(e) {
+      S.data[ind.id] = [];
+      console.warn('Failed:', ind.label, e);
+    }
+  }));
+
+  setS('Assigning congressional districts to facilities…');
+  assignDistricts();
+  populateDistrictDropdown();
+  filterTable();
+
+  document.getElementById('loading').style.display = 'none';
+  document.querySelector('.sdot').classList.remove('blink');
+  document.querySelector('.sdot').style.background = '#2e7d32';
+
+  const total = Object.values(S.data).flat().length;
+  setS(`✓ ${total.toLocaleString()} facilities loaded · ${fetched}/${INDUSTRIES.length} sectors · Source: EPA GHGRP + curated data`);
+  renderDots();
+  filterTable();
+}
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+main().catch(e => {
+  console.error(e);
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('stxt').textContent = 'Error — check browser console';
+});
+</script>
+</body>
+</html>
