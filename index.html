@@ -598,9 +598,8 @@ const S = {
 
 // ── Congressional District Data ───────────────────────────────────────────────
 async function loadDistricts() {
-  // ArcGIS Living Atlas - has CORS headers, no proxy needed
-  const url = 'https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_118th_Congressional_Districts/FeatureServer/0/query?where=1%3D1&outFields=STATE_ABBR%2CCDFIPS&returnGeometry=true&outSR=4326&f=geojson&resultRecordCount=500';
-  console.log('Loading districts from ArcGIS Living Atlas');
+  // Pre-built 118th Congress GeoJSON (~900KB) with CORS from GitHub raw content
+  const url = 'https://raw.githubusercontent.com/loganpowell/census-geojson/master/GeoJSON/20m/2022/congressional-district.json';
   try {
     const r = await fetch(url);
     const data = await r.json();
@@ -665,8 +664,11 @@ function assignDistricts() {
     for (const feat of S.districts) {
       if (pointInGeoJSONFeature(pt, feat)) {
         const props = feat.properties || {};
-        const st = props.STATE_ABBR || '';
-        const distPad = String(parseInt(props.CDFIPS || '0') || 0).padStart(2, '0');
+        const geoid = String(props.GEOID || '');
+        const stFips = geoid.slice(0, 2);
+        const distNum = geoid.slice(2) || props.CD118FP || props.CD116FP || '';
+        const st = fipsToState[stFips] || stFips;
+        const distPad = String(parseInt(distNum) || 0).padStart(2, '0');
         f.district = `${st}-${distPad}`;
         const rep = S.reps[f.district];
         f.repName = rep ? rep.name : 'Vacant/Unknown';
