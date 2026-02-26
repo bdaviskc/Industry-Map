@@ -598,21 +598,14 @@ const S = {
 
 // ── Congressional District Data ───────────────────────────────────────────────
 async function loadDistricts() {
-  // Route through Cloudflare worker to avoid CORS
-  // Build TIGERweb URL with unencoded params so worker can forward it cleanly
-  const tigerBase = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Current/MapServer/54/query';
-  const tigerParams = 'where=1=1&outFields=GEOID,BASENAME&returnGeometry=true&outSR=4326&f=geojson&resultRecordCount=1000';
-  // TIGERweb (Census Bureau) supports CORS natively — no proxy needed
-  const url = tigerBase + '?' + tigerParams;
-  console.log('Loading districts from:', url);
+  // ArcGIS Living Atlas - has CORS headers, no proxy needed
+  const url = 'https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_118th_Congressional_Districts/FeatureServer/0/query?where=1%3D1&outFields=STATE_ABBR%2CCDFIPS&returnGeometry=true&outSR=4326&f=geojson&resultRecordCount=500';
+  console.log('Loading districts from ArcGIS Living Atlas');
   try {
     const r = await fetch(url);
-    const text = await r.text();
-    console.log('Districts response status:', r.status, 'first 200 chars:', text.slice(0, 200));
-    const data = JSON.parse(text);
+    const data = await r.json();
     S.districts = data.features || [];
     console.log('Districts loaded:', S.districts.length);
-    if (S.districts[0]) console.log('Sample district props:', JSON.stringify(S.districts[0].properties));
     return S.districts.length > 0;
   } catch(e) {
     console.warn('Districts failed:', e.message);
@@ -672,11 +665,8 @@ function assignDistricts() {
     for (const feat of S.districts) {
       if (pointInGeoJSONFeature(pt, feat)) {
         const props = feat.properties || {};
-        const geoid = String(props.GEOID || props.id || '');
-        const stFips = geoid.slice(0, 2);
-        const distNum = geoid.slice(2) || props.CD118FP || props.CD116FP || '';
-        const st = fipsToState[stFips] || stFips;
-        const distPad = String(parseInt(distNum) || 0).padStart(2, '0');
+        const st = props.STATE_ABBR || '';
+        const distPad = String(parseInt(props.CDFIPS || '0') || 0).padStart(2, '0');
         f.district = `${st}-${distPad}`;
         const rep = S.reps[f.district];
         f.repName = rep ? rep.name : 'Vacant/Unknown';
