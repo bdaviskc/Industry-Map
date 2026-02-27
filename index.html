@@ -941,7 +941,7 @@ async function drawBase() {
   await loadScript('https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js');
   const topo = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r => r.json());
 
-  const proj = d3.geoAlbersUsa().scale(1280).translate([480,310]);
+  const proj = d3.geoAlbersUsa().scale(980).translate([480,310]);
   _proj = proj;
   const path = d3.geoPath().projection(proj);
   const svg = d3.select('#map-svg');
@@ -958,7 +958,7 @@ async function drawBase() {
   base.append('path').attr('d', path(mesh)||'').attr('class','sb');
 
   _zoom = d3.zoom()
-    .scaleExtent([1, 20])
+    .scaleExtent([0.5, 20])
     .on('zoom', (event) => {
       g.attr('transform', event.transform);
       const k = event.transform.k;
